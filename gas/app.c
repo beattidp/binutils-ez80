@@ -594,6 +594,32 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	  PUT (ch);
 	  continue;
 
+#if defined TC_Z80 || defined TC_EZ80
+	case 16:
+	  /* We have seen an 'a' at the start of a symbol, look for an 'f'.  */
+	  ch = GET ();
+	  if (ch == 'f' || ch == 'F')
+	    {
+	      state = 17;
+	      PUT (ch);
+	    }
+	  else
+	    {
+	      state = 9;
+	      break;
+	    }
+	case 17:
+	  /* We have seen "af" at the start of a symbol,
+	     a ' here is a part of that symbol.  */
+	  ch = GET ();
+	  state = 9;
+	  if (ch == ''')
+	    /* Change to avoid warning about unclosed string.  */
+	    PUT ('`');
+	  else if (ch != EOF)
+	    UNGET (ch);
+	  break;
+#endif
 	case 4:
 	  ch = GET ();
 	  if (ch == EOF)

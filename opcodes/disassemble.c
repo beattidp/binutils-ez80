@@ -480,6 +480,9 @@ disassembler (enum bfd_architecture a,
       break;
 #endif
 #ifdef ARCH_z8k
+    case bfd_arch_ez80:
+      disassemble = print_insn_ez80;
+      break;
     case bfd_arch_z8k:
       if (mach == bfd_mach_z8001)
 	disassemble = print_insn_z8001;

@@ -1206,7 +1206,7 @@ emit_byte (expressionS * val, bfd_reloc_code_real_type r_type)
   else
     {
       fixp = fix_new_exp (frag_now, p - frag_now->fr_literal, 1, val,
-			  (r_type == BFD_RELOC_8_PCREL) ? TRUE : FALSE, r_type);
+			  (r_type == BFD_RELOC_8_PCREL) ? true : false, r_type);
       /* FIXME : Process constant offsets immediately.  */
     }
 }
@@ -1241,7 +1241,7 @@ char *p;
 			p[2] = (val->X_add_number>>16);
 			if (val->X_op != O_constant)
 			fix_new_exp (frag_now, p - frag_now->fr_literal, 3,
-			val, FALSE, BFD_RELOC_24);
+			val, false, BFD_RELOC_24);
 		}
 		else if(strncmp(".is",suffix,3) == 0) 
 		{
@@ -1250,7 +1250,7 @@ char *p;
 			p[1] = (val->X_add_number>>8);
 			if (val->X_op != O_constant)
 			fix_new_exp (frag_now, p - frag_now->fr_literal, 2,
-			val, FALSE, BFD_RELOC_16);
+			val, false, BFD_RELOC_16);
 		}
 		else if((strncmp(".sis",suffix,4) == 0) || (strncmp(".lis",suffix,4) == 0)) 
 		{
@@ -1259,7 +1259,7 @@ char *p;
 			p[1] = (val->X_add_number>>8);
 			if (val->X_op != O_constant)
 			fix_new_exp (frag_now, p - frag_now->fr_literal, 2,
-			val, FALSE, BFD_RELOC_16);
+			val, false, BFD_RELOC_16);
 		}				
 		else
 		{
@@ -1271,7 +1271,7 @@ char *p;
 				p[2] = (val->X_add_number>>16);
 				if (val->X_op != O_constant)
 				fix_new_exp (frag_now, p - frag_now->fr_literal, 3,
-				val, FALSE, BFD_RELOC_24);
+				val, false, BFD_RELOC_24);
 			}	
 			else if(adl_mode == 0)
 			{
@@ -1281,7 +1281,7 @@ char *p;
 				p[1] = (val->X_add_number>>8);
 				if (val->X_op != O_constant)
 				fix_new_exp (frag_now, p - frag_now->fr_literal, 2,
-				val, FALSE, BFD_RELOC_16);
+				val, false, BFD_RELOC_16);
 			}
 		}
 	}
