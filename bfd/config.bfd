@@ -184,6 +184,9 @@ esac
 
 targ_cpu=`echo $targ | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
 case "${targ_cpu}" in
+  ez80*)
+    targ_archs=bfd_ez80_arch
+    ;;
 aarch64*)	 targ_archs="bfd_aarch64_arch bfd_arm_arch";;
 alpha*)		 targ_archs=bfd_alpha_arch ;;
 am33_2.0*)	 targ_archs=bfd_mn10300_arch ;;
@@ -241,6 +244,14 @@ esac
 #  convention, else the table becomes a real mess to understand and maintain.
 
 case "${targ}" in
+  ez80-*-coff)
+    targ_defvec=z80coff_vec
+    targ_underscore=no
+    ;;
+  ez80-*-elf)
+    targ_defvec=bfd_elf32_ez80_vec
+    targ_selvecs="z80coff_vec ieee_vec"
+    ;;
 # START OF targmatch.h
 #ifdef BFD64
   aarch64-*-darwin*)

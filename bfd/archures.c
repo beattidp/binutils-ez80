@@ -275,6 +275,10 @@ DESCRIPTION
 .  bfd_arch_m9s12xg,   {* Freescale XGATE.  *}
 .  bfd_arch_s12z,    {* Freescale S12Z.  *}
 .#define bfd_mach_s12z_default 0
+bfd_arch_ez80,
+#define bfd_mach_ez80strict      1
+#define bfd_mach_ez80            3
+#define bfd_mach_ez80full        7
 .  bfd_arch_z8k,       {* Zilog Z8000.  *}
 .#define bfd_mach_z8001		1
 .#define bfd_mach_z8002		2
@@ -707,7 +711,9 @@ extern const bfd_arch_info_type bfd_wasm32_arch;
 extern const bfd_arch_info_type bfd_xstormy16_arch;
 extern const bfd_arch_info_type bfd_xtensa_arch;
 extern const bfd_arch_info_type bfd_xgate_arch;
+extern const bfd_arch_info_type bfd_ez80_arch;
 extern const bfd_arch_info_type bfd_z80_arch;
+  &bfd_ez80_arch,
 extern const bfd_arch_info_type bfd_z8k_arch;
 
 static const bfd_arch_info_type * const bfd_archures_list[] =
