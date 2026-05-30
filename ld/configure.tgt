@@ -47,6 +47,8 @@ targ64_extra_libpath=
 
 if test "${ac_default_ld_warn_rwx_segments}" = unset; then
   case "${targ}" in
+ez80-*-coff)		targ_emul=ez80 ;;
+ez80-*-elf)		targ_emul=elf32ez80 ;;
       # The CRIS and V850 default linker scripts yields just one segment
       # as intended, so a rwx segment warning is not helpful.
       # The HPPA's and SPARC's PLT sections use a constructed trampoline

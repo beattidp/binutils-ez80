@@ -715,6 +715,7 @@ TARGET_CPU_CFILES = \
 	config/tc-xstormy16.c \
 	config/tc-xgate.c \
 	config/tc-xtensa.c \
+	config/tc-ez80.c \
 	config/tc-z80.c \
 	config/tc-z8k.c
 
@@ -788,6 +789,7 @@ TARGET_CPU_HFILES = \
 	config/tc-xstormy16.h \
 	config/tc-xgate.h \
 	config/tc-xtensa.h \
+	config/tc-ez80.h \
 	config/tc-z80.h \
 	config/tc-z8k.h
 
@@ -1243,6 +1245,8 @@ config/tc-xgate.$(OBJEXT): config/$(am__dirstamp) \
 	config/$(DEPDIR)/$(am__dirstamp)
 config/tc-xtensa.$(OBJEXT): config/$(am__dirstamp) \
 	config/$(DEPDIR)/$(am__dirstamp)
+config/tc-ez80.$(OBJEXT): config/$(am__dirstamp) \
+	config/$(DEPDIR)/$(am__dirstamp)
 config/tc-z80.$(OBJEXT): config/$(am__dirstamp) \
 	config/$(DEPDIR)/$(am__dirstamp)
 config/tc-z8k.$(OBJEXT): config/$(am__dirstamp) \
@@ -1394,6 +1398,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-d30v.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-dlx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-epiphany.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-ez80.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-fr30.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-frv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@config/$(DEPDIR)/tc-ft32.Po@am__quote@

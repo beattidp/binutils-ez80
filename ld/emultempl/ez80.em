@@ -48,7 +48,7 @@ ${LDEMUL_BEFORE_PARSE} (void)
 
 
 /* Update result_mach_type.  */
-static bfd_boolean
+static bool
 ${LDEMUL_RECOGNIZED_FILE} (lang_input_statement_type *entry)
 {
   unsigned long mach_type;
@@ -71,7 +71,7 @@ ${LDEMUL_RECOGNIZED_FILE} (lang_input_statement_type *entry)
     default:
       result_mach_type |= M_EZ80ANY;
     }
-  return FALSE;
+  return false;
 }
 
 /* Set the machine type of the output file based on result_mach_type.  */

@@ -262,6 +262,7 @@ TARGET32_LIBOPCODES_CFILES = \
 	xtensa-dis.c \
 	xgate-dis.c \
 	xgate-opc.c \
+	ez80-dis.c \
 	z80-dis.c \
 	z8k-dis.c
 
