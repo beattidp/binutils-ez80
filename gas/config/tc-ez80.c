@@ -62,7 +62,7 @@ const char FLT_CHARS[] = "RrFf\0";
 
 
 /* For machine specific options.  */
-const char * md_shortopts = ""; /* None yet.  */
+const char md_shortopts[] = ""; /* None yet.  */
 
 enum options
 {
@@ -81,7 +81,7 @@ enum options
 #define INS_UNPORT 4
 #define INS_R800   8
 
-struct option md_longopts[] =
+const struct option md_longopts[] =
 {
   { "ez80",       no_argument, NULL, OPTION_MACH_EZ80},
   { "r800",      no_argument, NULL, OPTION_MACH_R800},
@@ -101,7 +101,7 @@ struct option md_longopts[] =
   { NULL, no_argument, NULL, 0 }
 } ;
 
-size_t md_longopts_size = sizeof (md_longopts);
+const size_t md_longopts_size = sizeof (md_longopts);
 
 extern int coff_flags;
 /* Instruction classes that silently assembled.  */
@@ -141,11 +141,23 @@ error_report (void);
 //******************************************************************************************
 unsigned int disp_lea(const char *args)
 {
-	char array[5] = { 0 } ;
+	char array[16] = { 0 } ;
 	unsigned int c = 0;
-	int i = 0, flag = 0, hexa_flag = 0;
+	int i = 0, flag = 0, hexa_flag = 0, sign = 1;
 	unsigned int number = 0;
-	while(*args++ != '+') ;
+	while(*args && *args != '+' && *args != '-')
+	{
+		args++;
+	}
+	if (*args == '-')
+	{
+		sign = -1;
+		args++;
+	}
+	else if (*args == '+')
+	{
+		args++;
+	}
 	while(*args)
 	{
 		c = *args & CHAR_MASK;
@@ -157,7 +169,8 @@ unsigned int disp_lea(const char *args)
 		}
 		else if (ISXDIGIT(c))
 		{
-			array[i++] = c ;
+			if (i < 15)
+				array[i++] = c ;
 			flag = 1; 
 		}
 		++args;
@@ -168,7 +181,7 @@ unsigned int disp_lea(const char *args)
 	else if(flag == 1)
 		sscanf(array,"%d",&number);
 
-return number ;
+return number * sign ;
 }
 //******************************************************************************************
 // add_suffix_call  	: supports ez80 suffix for call instruction
@@ -436,16 +449,22 @@ int add_suffix_ld( void )
 unsigned int displacement(const char  *args )
 {
 	unsigned int number = 0;
-	char array[5] = { 0 } ;
+	char array[16] = { 0 } ;
 	unsigned int c = 0;
-	int i = 0, flag = 0, hexa_flag = 0;
+	int i = 0, flag = 0, hexa_flag = 0, sign = 1;
 	while(*args)
 	{
-		if(*args++ != '+')
+		if(*args != '+' && *args != '-')
+		{
+			args++;
 			continue;
+		}
 		else
 		{	
-			while(*args != ')')
+			if (*args == '-')
+				sign = -1;
+			args++;
+			while(*args && *args != ')')
 			{
 				c = *args & CHAR_MASK;
 				if (*args =='h' || *args =='H')
@@ -456,7 +475,8 @@ unsigned int displacement(const char  *args )
 				}
 				else if (ISXDIGIT(c))
 				{
-					array[i++] = c ;
+					if (i < 15)
+						array[i++] = c ;
 					flag = 1; 
 				}
 				++args;
@@ -469,12 +489,12 @@ unsigned int displacement(const char  *args )
 		}
 	break;
 	}
-	return number ;
+	return number * sign ;
 }
 //SVES END
 
 int
-md_parse_option (int c, char* arg ATTRIBUTE_UNUSED)
+md_parse_option (int c, const char* arg ATTRIBUTE_UNUSED)
 {
   switch (c)
     {
@@ -677,7 +697,8 @@ ez80_md_end (void)
       mach_type = 0;
     }
 
-  bfd_set_arch_mach (stdoutput, TARGET_ARCH, mach_type);
+  if (stdoutput)
+    bfd_set_arch_mach (stdoutput, TARGET_ARCH, mach_type);
 }
 
 static const char *
@@ -728,11 +749,10 @@ ez80_start_line_hook (void)
       char c, *rest, *line_start;
       int len;
 
-      line_start = input_line_pointer;
       if (ignore_input ())
 	return 0;
 
-      c = get_symbol_end ();
+      c = get_symbol_name (&line_start);
       rest = input_line_pointer + 1;
 
       if (*rest == ':')
@@ -763,7 +783,7 @@ ez80_start_line_hook (void)
       else
 	{
 	  /* Restore line and pointer.  */
-	  *input_line_pointer = c;
+	  restore_line_pointer (c);
 	  input_line_pointer = line_start;
 	}
     }
@@ -776,7 +796,7 @@ md_undefined_symbol (char *name ATTRIBUTE_UNUSED)
   return NULL;
 }
 
-char *
+const char *
 md_atof (int type ATTRIBUTE_UNUSED, char *litP ATTRIBUTE_UNUSED,
 	 int *sizeP ATTRIBUTE_UNUSED)
 {
@@ -936,14 +956,33 @@ static int
 contains_register(symbolS *sym)
 {
   if (sym)
-  {
-    expressionS * ex = symbol_get_value_expression(sym);
-    return (O_register == ex->X_op) 
-      || (ex->X_add_symbol && contains_register(ex->X_add_symbol)) 
-      || (ex->X_op_symbol && contains_register(ex->X_op_symbol));
-  }
-  else
-    return 0;
+    {
+      expressionS * ex = symbol_get_value_expression (sym);
+
+      switch (ex->X_op)
+	{
+	case O_register:
+	  return 1;
+
+	case O_add:
+	case O_subtract:
+	  if (ex->X_op_symbol && contains_register (ex->X_op_symbol)) {
+	    return 1;
+      }
+	  /* Fall through.  */
+	case O_uminus:
+	case O_symbol:
+	  if (ex->X_add_symbol && contains_register (ex->X_add_symbol)) {
+	    return 1;
+      }
+	  break;
+
+	default:
+	  break;
+	}
+    }
+
+  return 0;
 }
 
 
@@ -963,10 +1002,12 @@ parse_exp_not_indexed (const char *s, expressionS *op)
   const char *p;
   int indir;
   segT dummy;
+  memset (op, 0, sizeof (*op));
   p = skip_space (s);
   op->X_md = indir = is_indir (p);
   input_line_pointer = (char*) s ;
   dummy = expression (op);
+  op->X_md = indir; // Restore X_md since expr_copy may have clobbered it
   switch (op->X_op)
     {
     case O_absent:
@@ -1025,8 +1066,27 @@ parse_exp (const char *s, expressionS *op)
 	      op->X_op_symbol = 0;
 	      op->X_op = O_md1;
 	    }
-	}
-    break;
+		}
+      break;
+
+    case O_symbol:
+      if (op->X_md && op->X_add_symbol && symbol_get_value_expression(op->X_add_symbol)->X_op == O_register)
+        {
+          int rnum = symbol_get_value_expression(op->X_add_symbol)->X_add_number;
+          if (rnum == REG_IX || rnum == REG_IY)
+            {
+              expressionS const_disp;
+              memset(&const_disp, 0, sizeof(const_disp));
+              const_disp.X_op = O_constant;
+              const_disp.X_add_number = op->X_add_number;
+              op->X_add_symbol = make_expr_symbol(&const_disp);
+              op->X_add_number = rnum;
+              op->X_op_symbol = 0;
+              op->X_op = O_md1;
+            }
+        }
+      break;
+
     case O_register:
 		if ( op->X_md && ((REG_IX == op->X_add_number)||(REG_IY == op->X_add_number)) )
 		{
@@ -3432,10 +3492,15 @@ cpu (int size ATTRIBUTE_UNUSED)
 static void
 assume (int size ATTRIBUTE_UNUSED)
 {
-	if(strncmp("ADL=0",input_line_pointer,5) == 0)
-		adl_mode = 0 ;
+	char *p = input_line_pointer;
+	while (*p == ' ' || *p == '\t')
+		p++;
+	if (strncasecmp ("ADL=0", p, 5) == 0)
+		adl_mode = 0;
 	else
-		adl_mode = 1 ;	
+		adl_mode = 1;
+	while (*input_line_pointer && *input_line_pointer != '\n' && *input_line_pointer != '\r')
+		input_line_pointer++;
 }
 
 //SVES END
@@ -3872,7 +3937,16 @@ eZ80 suffix .s and .l into char suffix array to support Ez80 instruction . */
 	}
 /*Copying mnemonic  from char buf array to char suffix array inorder to store 
  eZ80 suffix */
-	strncpy(suffix,&buf[j],i-j);
+	if (i - j < (int)sizeof(suffix))
+	{
+		strncpy(suffix,&buf[j],i-j);
+		suffix[i-j] = 0;
+	}
+	else
+	{
+		strncpy(suffix,&buf[j],sizeof(suffix)-1);
+		suffix[sizeof(suffix)-1] = 0;
+	}
 	//sves end
   if (i == BUFLEN)
     {
