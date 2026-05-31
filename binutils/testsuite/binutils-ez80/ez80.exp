@@ -1,0 +1,12 @@
+# DejaGnu test driver for eZ80 binutils.
+
+if { ![istarget "ez80-*-*"] } {
+    return
+}
+
+set copyfile tmpdir/ez80copy
+
+run_dump_test "readelf_hdr"
+run_dump_test "readelf_relocs"
+run_dump_test "objcopy_ihex"
+run_dump_test "nm_adl_syms"

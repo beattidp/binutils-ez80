@@ -1,0 +1,6 @@
+#name: eZ80 nm 24-bit symbols
+#as: 
+#nm: -n
+#...
+00abcdef A high_sym
+#...
