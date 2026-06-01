@@ -50,6 +50,7 @@ char suffix[5];
 char check_suffix = 0;
 int cpu_eZ80 = 1 ;		/* selects cpu type */
 int adl_mode;			/* selects adl mode 0 or 1 */
+int zmasm_syntax = 0;
 
 /*SVES END*/
 
@@ -73,7 +74,8 @@ enum options
   OPTION_MACH_FUD,
   OPTION_MACH_IUP,
   OPTION_MACH_WUP,
-  OPTION_MACH_FUP
+  OPTION_MACH_FUP,
+  OPTION_ZMASM
 };
 
 #define INS_EZ80    1
@@ -97,6 +99,7 @@ const struct option md_longopts[] =
   { "Wup",  no_argument, NULL, OPTION_MACH_WUP },
   { "forbid-unportable-instructions", no_argument, NULL, OPTION_MACH_FUP },
   { "Fup",  no_argument, NULL, OPTION_MACH_FUP },
+  { "zmasm", no_argument, NULL, OPTION_ZMASM },
 
   { NULL, no_argument, NULL, 0 }
 } ;
@@ -537,6 +540,9 @@ md_parse_option (int c, const char* arg ATTRIBUTE_UNUSED)
     case OPTION_MACH_FUP:
       ins_ok &= ~INS_UNPORT;
       ins_err |= INS_UNPORT;
+      break;
+    case OPTION_ZMASM:
+      zmasm_syntax = 1;
       break;
     }
 
@@ -3617,11 +3623,36 @@ emit_muluw (char prefix ATTRIBUTE_UNUSED, char opcode, const char * args)
   return p;
 }
 
+operatorT
+ez80_operator (char *name, int args, char *next_p ATTRIBUTE_UNUSED)
+{
+  if (!zmasm_syntax)
+    return O_absent;
+
+  if (args == 2)
+    {
+      if (strcasecmp (name, "AND") == 0)
+	return O_bit_and;
+      else if (strcasecmp (name, "OR") == 0)
+	return O_bit_inclusive_or;
+      else if (strcasecmp (name, "XOR") == 0)
+	return O_bit_exclusive_or;
+    }
+
+  return O_absent;
+}
+
+static void s_zmasm (int ignore ATTRIBUTE_UNUSED)
+{
+  zmasm_syntax = 1;
+}
+
 /* Port specific pseudo ops.  */
 const pseudo_typeS md_pseudo_table[] =
 {
   { "assume", assume, 0},				//SVES ADDED ,support pseudo instructions .ASSUME
   { "cpu", cpu, 0},						//SVES ADDED ,support pseudo instructions .CPU
+  { "zmasm", s_zmasm, 0},
   { "db" , emit_data, 1},
   { "d24", cons, 3},
   { "d32", cons, 4},
@@ -3632,6 +3663,9 @@ const pseudo_typeS md_pseudo_table[] =
   { "defw", cons, 2},
   { "ds",   s_space, 1}, /* Fill with bytes rather than words.  */
   { "dw", cons, 2},
+  { "dl", cons, 4},
+  { "equ", s_set, 0},
+  { "section", obj_elf_section, 0},
 #if 0
   { "psect", obj_coff_section, 0}, /* TODO: Translate attributes.  */
 #endif

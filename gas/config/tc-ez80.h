@@ -107,4 +107,7 @@ extern void ez80_cons_fix_new (fragS *, int, int, expressionS *);
    we use to identify registers.  */
 #define md_register_arithmetic 0
 
+#define md_operator ez80_operator
+extern operatorT ez80_operator (char *, int, char *);
+
 #endif
