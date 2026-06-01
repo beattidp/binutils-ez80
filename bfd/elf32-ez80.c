@@ -721,6 +721,8 @@ elf32_ez80_link_hash_newfunc (struct bfd_hash_entry * entry,
    hash table to keep information specific to the EZ80 ELF linker (without
    using static variables).  */
 
+static void elf32_ez80_link_hash_table_free (bfd *);
+
 static struct bfd_link_hash_table *
 elf32_ez80_link_hash_table_create (bfd *abfd)
 {
@@ -733,8 +735,7 @@ elf32_ez80_link_hash_table_create (bfd *abfd)
 
   if (!_bfd_elf_link_hash_table_init (&htab->etab, abfd,
                                       elf32_ez80_link_hash_newfunc,
-                                      sizeof (struct elf_link_hash_entry),
-                  EZ80_ELF_DATA))
+                                      sizeof (struct elf_link_hash_entry)))
     {
       free (htab);
       return NULL;
@@ -743,7 +744,12 @@ elf32_ez80_link_hash_table_create (bfd *abfd)
   /* Init the stub hash table too.  */
   if (!bfd_hash_table_init (&htab->bstab, stub_hash_newfunc,
                             sizeof (struct elf32_ez80_stub_hash_entry)))
-    return NULL;
+    {
+      _bfd_elf_link_hash_table_free (abfd);
+      return NULL;
+    }
+
+  htab->etab.root.hash_table_free = elf32_ez80_link_hash_table_free;
 
   return &htab->etab.root;
 }
@@ -751,10 +757,10 @@ elf32_ez80_link_hash_table_create (bfd *abfd)
 /* Free the derived linker hash table.  */
 
 static void
-elf32_ez80_link_hash_table_free (struct bfd_link_hash_table *btab)
+elf32_ez80_link_hash_table_free (bfd *obfd)
 {
   struct elf32_ez80_link_hash_table *htab
-    = (struct elf32_ez80_link_hash_table *) btab;
+    = (struct elf32_ez80_link_hash_table *) obfd->link.hash;
 
   /* Free the address mapping table.  */
   if (htab->amt_stub_offsets != NULL)
@@ -763,7 +769,7 @@ elf32_ez80_link_hash_table_free (struct bfd_link_hash_table *btab)
     free (htab->amt_destination_addr);
 
   bfd_hash_table_free (&htab->bstab);
-  _bfd_elf_link_hash_table_free (btab);
+  _bfd_elf_link_hash_table_free (obfd);
 }
 
 /* Calculates the effective distance of a pc relative jump/call.  */
@@ -814,7 +820,7 @@ bfd_elf32_bfd_reloc_name_lookup (bfd *abfd ATTRIBUTE_UNUSED,
 
 /* Set the howto pointer for an EZ80 ELF reloc.  */
 
-static void
+static bool
 ez80_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
          arelent *cache_ptr,
          Elf_Internal_Rela *dst)
@@ -824,6 +830,7 @@ ez80_info_to_howto_rela (bfd *abfd ATTRIBUTE_UNUSED,
   r_type = ELF32_R_TYPE (dst->r_info);
   BFD_ASSERT (r_type < (unsigned int) R_EZ80_max);
   cache_ptr->howto = &elf_ez80_howto_table[r_type];
+  return true;
 }
 
 static bool
@@ -1255,7 +1262,7 @@ ez80_final_link_relocate (reloc_howto_type *                 howto,
 
 /* Relocate an EZ80 ELF section.  */
 
-static bool
+static int
 elf32_ez80_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
              struct bfd_link_info *info,
              bfd *input_bfd,
@@ -1305,25 +1312,25 @@ elf32_ez80_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
 
      name = bfd_elf_string_from_elf_section
        (input_bfd, symtab_hdr->sh_link, sym->st_name);
-     name = (name == NULL) ? bfd_section_name (input_bfd, sec) : name;
+     name = (name == NULL) ? bfd_section_name (sec) : name;
    }
       else
    {
-     bool unresolved_reloc, warned;
+     bool unresolved_reloc, warned, ignored;
 
      RELOC_FOR_GLOBAL_SYMBOL (info, input_bfd, input_section, rel,
                r_symndx, symtab_hdr, sym_hashes,
                h, sec, relocation,
-               unresolved_reloc, warned);
+               unresolved_reloc, warned, ignored);
 
      name = h->root.root.string;
    }
 
       if (sec != NULL && discarded_section (sec))
    RELOC_AGAINST_DISCARDED_SECTION (info, input_bfd, input_section,
-                rel, 1, relend, howto, 0, contents);
+                rel, 1, relend, R_EZ80_NONE, howto, 0, contents);
 
-      if (info->relocatable)
+      if (bfd_link_relocatable (info))
    continue;
 
       r = ez80_final_link_relocate (howto, input_bfd, input_section,
@@ -1336,14 +1343,14 @@ elf32_ez80_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
      switch (r)
        {
        case bfd_reloc_overflow:
-         r = info->callbacks->reloc_overflow
+         (*info->callbacks->reloc_overflow)
       (info, (h ? &h->root : NULL),
        name, howto->name, (bfd_vma) 0,
        input_bfd, input_section, rel->r_offset);
          break;
 
        case bfd_reloc_undefined:
-         r = info->callbacks->undefined_symbol
+         (*info->callbacks->undefined_symbol)
       (info, name, input_bfd, input_section, rel->r_offset, true);
          break;
 
@@ -1365,11 +1372,10 @@ elf32_ez80_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
        }
 
      if (msg)
-       r = info->callbacks->warning
+       (*info->callbacks->warning)
          (info, msg, name, input_bfd, input_section, rel->r_offset);
 
-     if (! r)
-       return false;
+     return false;
    }
     }
 
@@ -1380,9 +1386,8 @@ elf32_ez80_relocate_section (bfd *output_bfd ATTRIBUTE_UNUSED,
    file.  This gets the EZ80 architecture right based on the machine
    number.  */
 
-static void
-bfd_elf_ez80_final_write_processing (bfd *abfd,
-                bool linker ATTRIBUTE_UNUSED)
+static bool
+bfd_elf_ez80_final_write_processing (bfd *abfd)
 {
   unsigned long val;
 
@@ -1465,6 +1470,7 @@ bfd_elf_ez80_final_write_processing (bfd *abfd,
   elf_elfheader (abfd)->e_flags &= ~ EF_EZ80_MACH;
   elf_elfheader (abfd)->e_flags |= val;
   elf_elfheader (abfd)->e_flags |= EF_EZ80_LINKRELAX_PREPARED;
+  return _bfd_elf_final_write_processing (abfd);
 }
 
 /* Set the right machine number.  */
@@ -1799,7 +1805,7 @@ elf32_ez80_relax_section (bfd *abfd,
       || !strcmp (sec->name,".jumptables"))
     shrinkable = false;
 
-  if (link_info->relocatable)
+  if (bfd_link_relocatable (link_info))
     (*link_info->callbacks->einfo)
       (_("%P%F: --relax and -r may not be used together\n"));
 
@@ -1837,7 +1843,7 @@ elf32_ez80_relax_section (bfd *abfd,
   /* We don't have to do anything for a relocatable link, if
      this section does not have relocs, or if this is not a
      code section.  */
-  if (link_info->relocatable
+  if (bfd_link_relocatable (link_info)
       || (sec->flags & SEC_RELOC) == 0
       || sec->reloc_count == 0
       || (sec->flags & SEC_CODE) == 0)
@@ -2740,7 +2746,7 @@ elf32_ez80_setup_section_lists (bfd *output_bfd,
   /* Count the number of input BFDs and find the top input section id.  */
   for (input_bfd = info->input_bfds, bfd_count = 0, top_id = 0;
        input_bfd != NULL;
-       input_bfd = input_bfd->link_next)
+       input_bfd = input_bfd->link.next)
     {
       bfd_count += 1;
       for (section = input_bfd->sections;
@@ -2814,7 +2820,7 @@ get_local_syms (bfd *input_bfd, struct bfd_link_info *info)
      export stubs.  */
   for (bfd_indx = 0;
        input_bfd != NULL;
-       input_bfd = input_bfd->link_next, bfd_indx++)
+       input_bfd = input_bfd->link.next, bfd_indx++)
     {
       Elf_Internal_Shdr *symtab_hdr;
 
@@ -2891,7 +2897,7 @@ elf32_ez80_size_stubs (bfd *output_bfd,
       bfd_hash_traverse (&htab->bstab, ez80_mark_stub_not_to_be_necessary, htab);
       for (input_bfd = info->input_bfds, bfd_indx = 0;
            input_bfd != NULL;
-           input_bfd = input_bfd->link_next, bfd_indx++)
+           input_bfd = input_bfd->link.next, bfd_indx++)
         {
           Elf_Internal_Shdr *symtab_hdr;
           asection *section;
@@ -3004,7 +3010,7 @@ elf32_ez80_size_stubs (bfd *output_bfd,
                         }
                       else if (hh->root.type == bfd_link_hash_undefweak)
                         {
-                          if (! info->shared)
+                          if (! bfd_link_pic (info))
                             continue;
                         }
                       else if (hh->root.type == bfd_link_hash_undefined)
@@ -3170,7 +3176,6 @@ elf32_ez80_build_stubs (struct bfd_link_info *info)
 #define TARGET_LITTLE_NAME "elf32-ez80"
 
 #define bfd_elf32_bfd_link_hash_table_create elf32_ez80_link_hash_table_create
-#define bfd_elf32_bfd_link_hash_table_free   elf32_ez80_link_hash_table_free
 
 #define elf_info_to_howto               ez80_info_to_howto_rela
 #define elf_info_to_howto_rel              NULL
