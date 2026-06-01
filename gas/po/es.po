@@ -23829,7 +23829,3 @@ msgstr "Se encontró un ciclo infinito al intentar computar las direcciones de l
 #~ msgid "alignments greater than %d bytes not supported in .text sections."
 #~ msgstr "no se admiten las alineaciones más grandes que %d bytes en las secciones .text."
 
-#, c-format
-#~| msgid "Big number is too big"
-#~ msgid "file number %lu is too big"
-#~ msgstr "El número grande es demasiado grande"

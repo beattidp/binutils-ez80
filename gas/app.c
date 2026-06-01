@@ -613,7 +613,7 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	     a ' here is a part of that symbol.  */
 	  ch = GET ();
 	  state = 9;
-	  if (ch == ''')
+	  if (ch == '\'')
 	    /* Change to avoid warning about unclosed string.  */
 	    PUT ('`');
 	  else if (ch != EOF)
