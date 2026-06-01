@@ -335,6 +335,7 @@
 #define EM_COOL 	217 	/* Bluechip Systems CoolEngine */
 #define EM_NORC 	218 	/* Nanoradio Optimized RISC */
 #define EM_CSR_KALIMBA 	219 	/* CSR Kalimba architecture family */
+#define EM_EZ80            0xe190  /* Zilog eZ80 Family */
 #define EM_Z80 		220 	/* Zilog Z80 */
 #define EM_VISIUM	221	/* Controls and Data Services VISIUMcore processor */
 #define EM_FT32         222     /* FTDI Chip FT32 high performance 32-bit RISC architecture */

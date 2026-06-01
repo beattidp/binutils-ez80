@@ -1466,6 +1466,7 @@ case $cpu-$vendor in
 			| xstormy16 \
 			| xtensa* \
 			| ymp \
+			| ez80 \
 			| z80 \
 			| z8k)
 				;;

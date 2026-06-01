@@ -5199,8 +5199,8 @@ esac
 
 
 
-macro_version='2.2.6b'
-macro_revision='1.3017'
+macro_version='2.2.7a'
+macro_revision='1.3134'
 
 
 
@@ -15541,6 +15541,7 @@ do
     xtensa_elf32_be_vec)	 tb="$tb xtensa-dynconfig.lo xtensa-isa.lo xtensa-modules.lo elf32-xtensa.lo elf32.lo $elf" ;;
     xtensa_elf32_le_vec)	 tb="$tb xtensa-dynconfig.lo xtensa-isa.lo xtensa-modules.lo elf32-xtensa.lo elf32.lo $elf" ;;
     z80_coff_vec)		 tb="$tb coff-z80.lo reloc16.lo $coffgen" ;;
+    bfd_elf32_ez80_vec)		 tb="$tb elf32-ez80.lo elf32.lo $elf" ;;
     z80_elf32_vec)		 tb="$tb elf32-z80.lo elf32.lo $elf" ;;
     z8k_coff_vec)		 tb="$tb coff-z8k.lo reloc16.lo $coff" ;;
 

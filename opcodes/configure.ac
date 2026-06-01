@@ -345,6 +345,7 @@ if test x${all_targets} = xfalse ; then
 	bfd_xstormy16_arch)	ta="$ta xstormy16-asm.lo xstormy16-desc.lo xstormy16-dis.lo xstormy16-ibld.lo xstormy16-opc.lo" using_cgen=yes ;;
 	bfd_xtensa_arch)	ta="$ta xtensa-dis.lo" ;;
 	bfd_z80_arch)		ta="$ta z80-dis.lo" ;;
+	bfd_ez80_arch)		ta="$ta ez80-dis.lo" ;;
 	bfd_z8k_arch)		ta="$ta z8k-dis.lo" ;;
 	bfd_bpf_arch)		ta="$ta bpf-dis.lo bpf-opc.lo" ;;
 	bfd_loongarch_arch)	ta="$ta loongarch-dis.lo loongarch-opc.lo loongarch-coder.lo" ;;

@@ -244,14 +244,6 @@ esac
 #  convention, else the table becomes a real mess to understand and maintain.
 
 case "${targ}" in
-  ez80-*-coff)
-    targ_defvec=z80coff_vec
-    targ_underscore=no
-    ;;
-  ez80-*-elf)
-    targ_defvec=bfd_elf32_ez80_vec
-    targ_selvecs="z80coff_vec ieee_vec"
-    ;;
 # START OF targmatch.h
 #ifdef BFD64
   aarch64-*-darwin*)
@@ -1471,6 +1463,16 @@ case "${targ}" in
   xtensa*-*-*)
     targ_defvec=xtensa_elf32_le_vec
     targ_selvecs=xtensa_elf32_be_vec
+    ;;
+
+  ez80-*-coff)
+    targ_defvec=z80_coff_vec
+    targ_underscore=no
+    ;;
+
+  ez80-*-elf)
+    targ_defvec=bfd_elf32_ez80_vec
+    targ_selvecs="z80_coff_vec"
     ;;
 
   z80-*-coff)

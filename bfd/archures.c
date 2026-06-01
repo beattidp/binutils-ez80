@@ -713,7 +713,6 @@ extern const bfd_arch_info_type bfd_xtensa_arch;
 extern const bfd_arch_info_type bfd_xgate_arch;
 extern const bfd_arch_info_type bfd_ez80_arch;
 extern const bfd_arch_info_type bfd_z80_arch;
-  &bfd_ez80_arch,
 extern const bfd_arch_info_type bfd_z8k_arch;
 
 static const bfd_arch_info_type * const bfd_archures_list[] =
@@ -800,6 +799,7 @@ static const bfd_arch_info_type * const bfd_archures_list[] =
     &bfd_xtensa_arch,
     &bfd_xgate_arch,
     &bfd_z80_arch,
+    &bfd_ez80_arch,
     &bfd_z8k_arch,
 #endif
   0

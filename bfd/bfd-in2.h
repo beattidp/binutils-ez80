@@ -1504,6 +1504,10 @@ enum bfd_architecture
   bfd_arch_m9s12xg,   /* Freescale XGATE.  */
   bfd_arch_s12z,    /* Freescale S12Z.  */
 #define bfd_mach_s12z_default 0
+  bfd_arch_ez80,
+#define bfd_mach_ez80strict      1
+#define bfd_mach_ez80            3
+#define bfd_mach_ez80full        7
   bfd_arch_z8k,       /* Zilog Z8000.  */
 #define bfd_mach_z8001         1
 #define bfd_mach_z8002         2

@@ -943,6 +943,7 @@ extern const bfd_target xgate_elf32_vec;
 extern const bfd_target xstormy16_elf32_vec;
 extern const bfd_target xtensa_elf32_be_vec;
 extern const bfd_target xtensa_elf32_le_vec;
+extern const bfd_target bfd_elf32_ez80_vec;
 extern const bfd_target z80_coff_vec;
 extern const bfd_target z80_elf32_vec;
 extern const bfd_target z8k_coff_vec;
@@ -1361,6 +1362,7 @@ static const bfd_target * const _bfd_target_vector[] =
 	&z80_coff_vec,
 	&z80_elf32_vec,
 
+  &bfd_elf32_ez80_vec,
 	&z8k_coff_vec,
 
 #ifdef BFD64
