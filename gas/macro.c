@@ -195,11 +195,18 @@ buffer_and_nest (const char *from, const char *to, sb *ptr,
 		  || ! (is_part_of_name (ptr->ptr[i + from_len])
 			|| is_name_ender (ptr->ptr[i + from_len]))))
 	    depth++;
-	  if (len >= to_len
+	  if ((len >= to_len
 	      && strncasecmp (ptr->ptr + i, to, to_len) == 0
 	      && (len == to_len
 		  || ! (is_part_of_name (ptr->ptr[i + to_len])
 			|| is_name_ender (ptr->ptr[i + to_len]))))
+          ||
+          (strcasecmp (to, "ENDM") == 0
+           && len >= 8
+           && strncasecmp (ptr->ptr + i, "ENDMACRO", 8) == 0
+           && (len == 8
+               || ! (is_part_of_name (ptr->ptr[i + 8])
+                     || is_name_ender (ptr->ptr[i + 8])))))
 	    {
 	      depth--;
 	      if (depth == 0)
@@ -275,17 +282,19 @@ getstring (size_t idx, sb *in, sb *acc)
   while (idx < in->len
 	 && (in->ptr[idx] == '"'
 	     || (in->ptr[idx] == '<' && (flag_macro_alternate || flag_mri))
+	     || (in->ptr[idx] == '{')
 	     || (in->ptr[idx] == '\'' && flag_macro_alternate)))
     {
-      if (in->ptr[idx] == '<')
+      if (in->ptr[idx] == '<' || in->ptr[idx] == '{')
 	{
+	  char close_char = (in->ptr[idx] == '<') ? '>' : '}';
 	  int nest = 0;
 	  idx++;
 	  while (idx < in->len)
 	    {
 	      if (in->ptr[idx] == '!' && idx + 1 < in->len)
 		idx++;
-	      else if (in->ptr[idx] == '>')
+	      else if (in->ptr[idx] == close_char)
 		{
 		  if (nest == 0)
 		    {
@@ -294,7 +303,7 @@ getstring (size_t idx, sb *in, sb *acc)
 		    }
 		  nest--;
 		}
-	      else if (in->ptr[idx] == '<')
+	      else if ((close_char == '>' && in->ptr[idx] == '<') || (close_char == '}' && in->ptr[idx] == '{'))
 		nest++;
 
 	      sb_add_char (acc, in->ptr[idx]);
@@ -370,9 +379,10 @@ get_any_string (size_t idx, sb *in, sb *out)
 	}
       else if (in->ptr[idx] == '"'
 	       || (in->ptr[idx] == '<' && (flag_macro_alternate || flag_mri))
+	       || (in->ptr[idx] == '{')
 	       || (flag_macro_alternate && in->ptr[idx] == '\''))
 	{
-	  if (flag_macro_alternate && ! macro_strip_at && in->ptr[idx] != '<')
+	  if (flag_macro_alternate && ! macro_strip_at && in->ptr[idx] != '<' && in->ptr[idx] != '{')
 	    {
 	      /* Keep the quotes.  */
 	      sb_add_char (out, '"');

@@ -41,7 +41,7 @@
 #include "as.h"
 #include "safe-ctype.h"
 #include "subsegs.h"
-
+#include "sb.h"
 /*SVES START*/
 /* This array holds the Special opcode suffixes that are added to the
 instruction set of Ez80 to assist with memory mode switching operations. */
@@ -543,6 +543,7 @@ md_parse_option (int c, const char* arg ATTRIBUTE_UNUSED)
       break;
     case OPTION_ZMASM:
       zmasm_syntax = 1;
+      flag_macro_alternate = 1;
       break;
     }
 
@@ -636,8 +637,39 @@ static const struct reg_entry regtable[] =
   {"sp", REG_SP },
   {"mb", REG_MB },			//SVES ADDED to support eZ80 instructions.
 } ;
-
 #define BUFLEN 16 /* Large enough for any keyword.  */
+
+int
+ez80_tc_labels_without_colon (void)
+{
+  return zmasm_syntax;
+}
+
+int
+ez80_tc_string_escapes (void)
+{
+  /* Disable string escapes when zmasm_syntax is active. */
+  return !zmasm_syntax;
+}
+
+int
+ez80_tc_start_label_without_colon (char *name, char nul_char, char next_char ATTRIBUTE_UNUSED)
+{
+  if (!zmasm_syntax)
+    return 1;
+    
+  if (strcasecmp (name, "macro") == 0 || strcasecmp (name, "endmacro") == 0)
+    return 0;
+    
+  if (nul_char == ' ' || nul_char == '\t')
+    {
+      char *ptr = input_line_pointer + 1;
+      while (*ptr == ' ' || *ptr == '\t')
+        ptr++;
+    }
+    
+  return 1;
+}
 
 void
 md_begin (void)
@@ -676,6 +708,16 @@ md_begin (void)
   zero = make_expr_symbol (& nul);
   /* We do not use relaxation (yet).  */
   linkrelax = 0;
+
+  if (zmasm_syntax)
+    {
+      if (symbol_find ("FLASHED") == NULL)
+        {
+          symbolS *sym = symbol_find_or_make ("FLASHED");
+          S_SET_SEGMENT (sym, absolute_section);
+          S_SET_VALUE (sym, 0);
+        }
+    }
 }
 
 void
@@ -734,17 +776,63 @@ ez80_start_line_hook (void)
 	      snprintf (buf, 4, "%3d", (unsigned char)p[1]);
 	      *p++ = buf[0];
 	      *p++ = buf[1];
-	      *p++ = buf[2];
+	      *p = buf[2];
 	    }
 	  break;
-	case '"':
-	  for (quote = *p++; quote != *p && '\n' != *p; ++p)
-	    /* No escapes.  */ ;
-	  if (quote != *p)
+	case '{':
+	  for (quote = *p++; quote != *p && '\n' != *p && '\0' != *p; ++p)
+	    {
+	      if (*p == '\\' && p[1] != '\0' && p[1] != '\n')
+	        ++p; /* Skip escaped character. */
+	      if (*p == '}')
+	        break;
+	    }
+	  if (*p != '}' && !zmasm_syntax)
 	    {
 	      as_bad (_("-- unterminated string"));
 	      ignore_rest_of_line ();
 	      return 1;
+	    }
+	  break;
+	case '"':
+	  for (quote = *p++; quote != *p && '\n' != *p && '\0' != *p; ++p)
+	    {
+	      if (*p == '\\' && p[1] != '\0' && p[1] != '\n')
+	        ++p; /* Skip escaped character. */
+	    }
+	  if (quote != *p && !zmasm_syntax)
+	    {
+	      as_bad (_("-- unterminated string"));
+	      ignore_rest_of_line ();
+	      return 1;
+	    }
+	  break;
+	case '$':
+	  if (zmasm_syntax)
+	    {
+	      if (p[1] == '$' && (!is_part_of_name(p[2]) || p[2] == ':'))
+	        {
+	          p[0] = '1';
+	          if (p[2] == ':')
+	            {
+	              p[1] = ':';
+	              p[2] = ' ';
+	            }
+	          else
+	            {
+	              p[1] = ':';
+	            }
+	        }
+	      else if ((p[1] == 'B' || p[1] == 'b') && !is_part_of_name(p[2]))
+	        {
+	          p[0] = '1';
+	          p[1] = 'b';
+	        }
+	      else if ((p[1] == 'F' || p[1] == 'f') && !is_part_of_name(p[2]))
+	        {
+	          p[0] = '1';
+	          p[1] = 'f';
+	        }
 	    }
 	  break;
 	}
@@ -767,10 +855,14 @@ ez80_start_line_hook (void)
 	++rest;
       if (*rest == '.')
 	++rest;
+      int reassign = 0;
       if (strncasecmp (rest, "EQU", 3) == 0)
-	len = 3;
+	{ len = 3; reassign = 0; }
       else if (strncasecmp (rest, "DEFL", 4) == 0)
-	len = 4;
+	{ len = 4; reassign = 1; }
+      else if (zmasm_syntax && strncasecmp (rest, "SET", 3) == 0)
+	{ len = 3; reassign = 1; }
+
       else
 	len = 0;
       if (len && (!ISALPHA(rest[len]) ) )
@@ -781,9 +873,10 @@ ez80_start_line_hook (void)
 	      bump_line_counters ();
 	      LISTING_NEWLINE ();
 	    }
+	    
 	  input_line_pointer = rest + len - 1;
-	  /* Allow redefining with "DEFL" (len == 4), but not with "EQU".  */
-	  equals (line_start, len == 4);
+	  /* Allow redefining with "DEFL" or ".SET", but not with "EQU".  */
+	  equals (line_start, reassign);
 	  return 1;
 	}
       else
@@ -3536,15 +3629,22 @@ emit_data (int size ATTRIBUTE_UNUSED)
 
   do
     {
-      if (*p == '\"' || *p == '\'')
+      if (*p == '\"' || *p == '\'' || *p == '{')
 	{
-	    for (quote = *p, q = ++p, cnt = 0; *p && quote != *p; ++p, ++cnt)
-	      ;
+	    char end_quote = (*p == '{') ? '}' : *p;
+	    for (quote = *p, q = ++p, cnt = 0; *p && *p != '\n' && end_quote != *p; ++p, ++cnt)
+	      {
+	        if (*p == '\\' && p[1] != '\0')
+	          {
+	            ++p;
+	            ++cnt;
+	          }
+	      }
 	    u = frag_more (cnt);
 	    memcpy (u, q, cnt);
-	    if (!*p)
+	    if (!*p && !zmasm_syntax)
 	      as_warn (_("unterminated string"));
-	    else
+	    else if (*p)
 	      p = skip_space (p+1);
 	}
       else
@@ -3653,6 +3753,92 @@ ez80_operator (char *name, int args, char *next_p ATTRIBUTE_UNUSED)
 static void s_zmasm (int ignore ATTRIBUTE_UNUSED)
 {
   zmasm_syntax = 1;
+  flag_macro_alternate = 1;
+}
+
+static void s_zmasm_comment (int ignore ATTRIBUTE_UNUSED)
+{
+  char delim;
+  char *p = input_line_pointer;
+
+  /* Skip whitespace to find the delimiter. */
+  while (*p == ' ' || *p == '\t')
+    p++;
+
+  if (*p == '\n' || *p == '\0')
+    {
+      as_bad (_("Missing delimiter for COMMENT directive"));
+      return;
+    }
+
+  delim = *p;
+  p++;
+  
+  /* Skip until the end of the line. */
+  while (*p && *p != '\n')
+    p++;
+  input_line_pointer = p;
+  
+  /* Now consume lines until we find the delimiter or ENDCOMMENT. */
+  while (1)
+    {
+      char *line = input_line_pointer;
+      if (*line == '\n')
+        line++;
+      
+      if (!*line)
+        break; /* EOF */
+        
+      /* Look for the delimiter on this line. */
+      char *end = strchr(line, '\n');
+      if (!end) end = line + strlen(line);
+      
+      char *match = memchr(line, delim, end - line);
+      if (match)
+        {
+          input_line_pointer = end;
+          break;
+        }
+        
+      /* Check for ENDCOMMENT */
+      char *ptr = line;
+      while (ptr < end && (*ptr == ' ' || *ptr == '\t' || *ptr == '%'))
+        ptr++;
+      if ((end - ptr) >= 10 && strncasecmp(ptr, "ENDCOMMENT", 10) == 0)
+        {
+          input_line_pointer = end;
+          break;
+        }
+        
+      input_line_pointer = end;
+    }
+}
+
+static void s_zmasm_define (int ignore ATTRIBUTE_UNUSED)
+{
+  /* ZMASM define directive. e.g. define Startup,SPACE=ROM, ORG=%0000 */
+  /* For now, we will alias it to a section creation or ignore it. */
+  char *name;
+  char c;
+  
+  name = input_line_pointer;
+  c = get_symbol_name (&name);
+  
+  if (name && *name)
+    {
+      subseg_new (xstrdup (name), 0);
+    }
+    
+  restore_line_pointer (c);
+  ignore_rest_of_line ();
+}
+
+extern void s_macro (int);
+
+static void s_endm (int ignore ATTRIBUTE_UNUSED)
+{
+  as_warn (_("ENDMACRO encountered without preceding MACRO"));
+  demand_empty_rest_of_line ();
 }
 
 static void
@@ -3690,6 +3876,11 @@ const pseudo_typeS md_pseudo_table[] =
 {
   { "assume", assume, 0},				//SVES ADDED ,support pseudo instructions .ASSUME
   { "cpu", cpu, 0},						//SVES ADDED ,support pseudo instructions .CPU
+  { "macro", s_macro, 0},
+  { "endmacro", s_endm, 0},
+  { "ifsame", s_ifc, 0},
+  { "comment", s_zmasm_comment, 0},
+  { "define", s_zmasm_define, 0},
   { "zmasm", s_zmasm, 0},
   { "db" , emit_data, 1},
   { "d24", cons, 3},
@@ -3993,6 +4184,7 @@ md_assemble (char* str)
 	err_flag = 0;
 	old_ptr = input_line_pointer;
 	p = skip_space (str);
+	
 /*Scanning mnemonic for Alphanumeric Characters, '0', '2' and '.' and 
 converting Alphanumeric Characters into lower case and storing mnemonic into 
 buf array. */

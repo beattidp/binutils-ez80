@@ -88,11 +88,27 @@ extern void ez80_cons_fix_new (fragS *, int, int, expressionS *);
 #define LOCAL_LABELS_FB              1
 #define LITERAL_PREFIXPERCENT_BIN
 #define NUMBERS_WITH_SUFFIX          1
-#define NO_PSEUDO_DOT                1
+#define md_pseudo_table ez80_pseudo_table
+extern const pseudo_typeS ez80_pseudo_table[];
 /* We allow single quotes to delimit character constants as
    well, but it is cleaner to handle that in tc-ez80.c.  */
 #define SINGLE_QUOTE_STRINGS
-#define NO_STRING_ESCAPES
+/* ZMASM string escape compatibility.  */
+#undef NO_STRING_ESCAPES
+extern int ez80_tc_string_escapes (void);
+#define TC_STRING_ESCAPES (ez80_tc_string_escapes ())
+
+/* ZMASM allows labels without colons.  */
+extern int ez80_tc_labels_without_colon (void);
+#define LABELS_WITHOUT_COLONS (ez80_tc_labels_without_colon ())
+
+/* Decide whether a symbol at the start of a line is a label or an instruction. */
+extern int ez80_tc_start_label_without_colon (char *name, char nul_char, char next_char);
+#define TC_START_LABEL_WITHOUT_COLON(NUL_CHAR, NEXT_CHAR) \
+  ez80_tc_start_label_without_colon (line_start, NUL_CHAR, NEXT_CHAR)
+
+/* ZMASM uses pseudo-ops without a leading period. */
+#define NO_PSEUDO_DOT (ez80_tc_labels_without_colon ())
 
 /* An `.lcomm' directive with no explicit alignment parameter will
    use this macro to set P2VAR to the alignment that a request for

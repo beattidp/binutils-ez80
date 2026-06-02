@@ -191,6 +191,10 @@ do_scrub_begin (int m68k_mri ATTRIBUTE_UNUSED)
 #ifdef SINGLE_QUOTE_STRINGS
       lex['\''] = LEX_IS_STRINGQUOTE;
 #endif
+
+#ifdef TC_EZ80
+      lex['{'] = LEX_IS_STRINGQUOTE;
+#endif
     }
 
   /* Note: if any other character can be LEX_IS_STRINGQUOTE, the loop
@@ -659,7 +663,7 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	    for (s = from; s < fromend; s++)
 	      {
 		ch = *s;
-		if (ch == '\\'
+		if ((ch == '\\' && quotechar != '}')
 		    || ch == quotechar
 		    || ch == '\n')
 		  break;
@@ -696,9 +700,21 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	      state = old_state;
 	      PUT (ch);
 	    }
-	  else if (TC_STRING_ESCAPES && ch == '\\')
+	  else if (TC_STRING_ESCAPES && ch == '\\' && quotechar != '}')
 	    {
 	      state = 6;
+	      PUT (ch);
+	    }
+	  else if (ch == '\\' && quotechar != '}')
+	    {
+	      /* ZMASM doesn't use TC_STRING_ESCAPES, but it does escape quotes.  */
+	      PUT (ch);
+	      ch = GET ();
+	      if (ch == EOF)
+		{
+		  as_warn (_("end of file in escape character"));
+		  ch = '\\';
+		}
 	      PUT (ch);
 	    }
 	  else if (scrub_m68k_mri && ch == '\n')
@@ -979,7 +995,12 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	  goto fromeof;
 	}
 
-      switch (lex[ch])
+      int lex_val = lex[(unsigned char) ch];
+#ifdef TC_EZ80
+      if (ch == '{')
+        lex_val = LEX_IS_STRINGQUOTE;
+#endif
+      switch (lex_val)
 	{
 	case LEX_IS_WHITESPACE:
 	  do
@@ -1182,6 +1203,10 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 
 	case LEX_IS_STRINGQUOTE:
 	  quotechar = ch;
+#ifdef TC_EZ80
+	  if (ch == '{')
+	    quotechar = '}';
+#endif
 	  if (state == 10)
 	    {
 	      /* Preserve the whitespace in foo "bar".  */
