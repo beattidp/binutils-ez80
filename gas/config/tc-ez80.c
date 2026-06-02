@@ -48,6 +48,22 @@ instruction set of Ez80 to assist with memory mode switching operations. */
 char suffix[5];
 /*check_suffix is the flag in order to avoid adding of opcode suffixes more than one. */
 char check_suffix = 0;
+enum ez80_variant {
+  EZ80_VARIANT_F91,
+  EZ80_VARIANT_190,
+  EZ80_VARIANT_F92,
+  EZ80_VARIANT_F93,
+  EZ80_VARIANT_L92
+};
+enum ez80_variant ez80_cpu_variant = EZ80_VARIANT_F91;
+const char * const ez80_variant_names[] = {
+  "eZ80F91",
+  "eZ80190",
+  "eZ80F92",
+  "eZ80F93",
+  "eZ80L92"
+};
+
 int cpu_eZ80 = 1 ;		/* selects cpu type */
 int adl_mode;			/* selects adl mode 0 or 1 */
 int zmasm_syntax = 0;
@@ -75,7 +91,8 @@ enum options
   OPTION_MACH_IUP,
   OPTION_MACH_WUP,
   OPTION_MACH_FUP,
-  OPTION_ZMASM
+  OPTION_ZMASM,
+  OPTION_MCPU
 };
 
 #define INS_EZ80    1
@@ -100,6 +117,7 @@ const struct option md_longopts[] =
   { "forbid-unportable-instructions", no_argument, NULL, OPTION_MACH_FUP },
   { "Fup",  no_argument, NULL, OPTION_MACH_FUP },
   { "zmasm", no_argument, NULL, OPTION_ZMASM },
+  { "mcpu", required_argument, NULL, OPTION_MCPU },
 
   { NULL, no_argument, NULL, 0 }
 } ;
@@ -544,6 +562,20 @@ md_parse_option (int c, const char* arg ATTRIBUTE_UNUSED)
     case OPTION_ZMASM:
       zmasm_syntax = 1;
       flag_macro_alternate = 1;
+      break;
+    case OPTION_MCPU:
+      if (strcasecmp (arg, "eZ80190") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_190;
+      else if (strcasecmp (arg, "eZ80F92") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_F92;
+      else if (strcasecmp (arg, "eZ80F93") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_F93;
+      else if (strcasecmp (arg, "eZ80L92") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_L92;
+      else if (strcasecmp (arg, "eZ80F91") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_F91;
+      else
+        as_bad (_("Unknown mcpu variant `%s'"), arg);
       break;
     }
 
@@ -3129,6 +3161,11 @@ emit_ldreg (int dest, expressionS * src, const char * args)
 		//SVES START ,supports Load Interrupt Vector
 		else if (src->X_md == 0 && src->X_op == O_register && src->X_add_number == REG_HL)
 		{
+			if (ez80_cpu_variant != EZ80_VARIANT_F91)
+			{
+				as_bad (_("Instruction not supported on %s."), ez80_variant_names[ez80_cpu_variant]);
+				return args; // Error out
+			}
 			q = frag_more (2);
 			*q++ = 0xED;
 			*q = 0xC7;
@@ -3406,6 +3443,11 @@ emit_ldreg (int dest, expressionS * src, const char * args)
 			&& src->X_op == O_register
 			&& (src->X_add_number == REG_I))
 			{
+				if (ez80_cpu_variant != EZ80_VARIANT_F91)
+				{
+					as_bad (_("Instruction not supported on %s."), ez80_variant_names[ez80_cpu_variant]);
+					return args; // Error out
+				}
 				q = frag_more (2);
 				*q++ = 0xED;
 				*q = 0xD7;
@@ -3592,10 +3634,27 @@ emit_ld (char prefix_in ATTRIBUTE_UNUSED, char opcode_in ATTRIBUTE_UNUSED,
 static void
 cpu (int size ATTRIBUTE_UNUSED)
 {
-    if(strncmp("EZ80",input_line_pointer,4) == 0 )
-		cpu_eZ80 = 1;
-	else if(strncmp("Z80",input_line_pointer,3) == 0 )
-		cpu_eZ80 = 0;
+    char name[16];
+    int i = 0;
+    while (*input_line_pointer && !is_whitespace (*input_line_pointer) && *input_line_pointer != '\n' && i < 15)
+        name[i++] = *input_line_pointer++;
+    name[i] = '\0';
+
+    if (strcasecmp (name, "eZ80190") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_190;
+    else if (strcasecmp (name, "eZ80F92") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_F92;
+    else if (strcasecmp (name, "eZ80F93") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_F93;
+    else if (strcasecmp (name, "eZ80L92") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_L92;
+    else if (strcasecmp (name, "eZ80F91") == 0)
+        ez80_cpu_variant = EZ80_VARIANT_F91;
+    else if (strncasecmp (name, "EZ80", 4) == 0)
+        cpu_eZ80 = 1;
+    else if (strncasecmp (name, "Z80", 3) == 0)
+        cpu_eZ80 = 0;
+
 	ignore_rest_of_line ();
 }
 
@@ -4257,6 +4316,14 @@ eZ80 suffix .s and .l into char suffix array to support Ez80 instruction . */
 		as_bad (_("Unknown instruction '%s'"), buf);}
       else
 	{
+      if (ez80_cpu_variant == EZ80_VARIANT_190 && 
+          (strncmp(buf, "indrx", 5) == 0 || strncmp(buf, "inirx", 5) == 0 ||
+           strncmp(buf, "otdrx", 5) == 0 || strncmp(buf, "otirx", 5) == 0))
+        {
+          as_bad (_("Instruction not supported on %s."), ez80_variant_names[ez80_cpu_variant]);
+          goto end;
+        }
+
 	  p = insp->fp (insp->prefix, insp->opcode, p);
 	  p = skip_space (p);
 	/*if ((!err_flag) && *p)
@@ -4264,6 +4331,7 @@ eZ80 suffix .s and .l into char suffix array to support Ez80 instruction . */
 		  *p);*/
 	}
     }
+ end:
   input_line_pointer = old_ptr;
 }
 
