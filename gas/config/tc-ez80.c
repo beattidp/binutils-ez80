@@ -2204,26 +2204,34 @@ emit_logic (char prefix, char opcode, const char * args)
 	const char *p;
 	opcode =0;
 	p = parse_exp (args, &term);
-	if (*p++ != ',')
-    {
-		error (_("bad instruction syntax"));
-		return p;
-    }
-
-	if ((term.X_md) || (term.X_op != O_register))
-		ill_op ();
+	if (*p == ',')
+	{
+		p++;
+		if ((term.X_md) || (term.X_op != O_register))
+			ill_op ();
+		else
+		switch (term.X_add_number)
+		{
+		case REG_A:
+			p = emit_s (0, prefix, p);
+			break;
+	   
+		/* Fall through.  */
+		default:
+			ill_op ();
+		}
+	}
 	else
-    switch (term.X_add_number)
-    {
-    case REG_A:
-		p = emit_s (0, prefix, p);
-		break;
-   
-	/* Fall through.  */
-    default:
-		ill_op ();
-    }
-  return p;
+	{
+		if (zmasm_syntax)
+			p = emit_s (0, prefix, args);
+		else
+		{
+			error (_("bad instruction syntax"));
+			return p;
+		}
+	}
+	return p;
 }
 //***************************************************************************************************
 //emit_add			: handles Instructions such as add group.
@@ -3626,7 +3634,7 @@ emit_muluw (char prefix ATTRIBUTE_UNUSED, char opcode, const char * args)
 operatorT
 ez80_operator (char *name, int args, char *next_p ATTRIBUTE_UNUSED)
 {
-  if (!zmasm_syntax)
+  if (!zmasm_syntax || !name)
     return O_absent;
 
   if (args == 2)
@@ -3645,6 +3653,36 @@ ez80_operator (char *name, int args, char *next_p ATTRIBUTE_UNUSED)
 static void s_zmasm (int ignore ATTRIBUTE_UNUSED)
 {
   zmasm_syntax = 1;
+}
+
+static void
+zmasm_set (int ignore)
+{
+  char *p = input_line_pointer;
+  
+  if (zmasm_syntax && strncasecmp (p, "SECTION", 7) == 0 && ISSPACE (p[7]))
+    {
+      p += 7;
+      p = skip_space (p);
+      input_line_pointer = p;
+      s_org (0);
+      return;
+    }
+    
+  if (!is_name_beginner (*p))
+    {
+      char *line = xmalloc (strlen (input_line_pointer) + 6);
+      strcpy (line, "set ");
+      strcat (line, input_line_pointer);
+      md_assemble (line);
+      free (line);
+      
+      while (*input_line_pointer && *input_line_pointer != '\n')
+        input_line_pointer++;
+      return;
+    }
+    
+  s_set (ignore);
 }
 
 /* Port specific pseudo ops.  */
@@ -3666,10 +3704,11 @@ const pseudo_typeS md_pseudo_table[] =
   { "dl", cons, 4},
   { "equ", s_set, 0},
   { "section", obj_elf_section, 0},
+  { "segment", obj_elf_section, 0},
 #if 0
   { "psect", obj_coff_section, 0}, /* TODO: Translate attributes.  */
 #endif
-  { "set", 0, 0}, 		/* Real instruction on ez80.  */
+  { "set", zmasm_set, 0},
   { NULL, 0, 0 }
 } ;
 
