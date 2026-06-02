@@ -3982,6 +3982,11 @@ eZ80 suffix .s and .l into char suffix array to support Ez80 instruction . */
 		suffix[sizeof(suffix)-1] = 0;
 	}
 	//sves end
+	if (zmasm_syntax && suffix[0] == '.')
+	{
+	  if (strcmp(suffix, ".b") == 0 || strcmp(suffix, ".w") == 0)
+	    strcpy(suffix, ".s");
+	}
   if (i == BUFLEN)
     {
       buf[BUFLEN-3] = buf[BUFLEN-2] = '.'; /* Mark opcode as abbreviated.  */
