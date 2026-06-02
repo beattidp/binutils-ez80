@@ -606,6 +606,7 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	    {
 	      state = 17;
 	      PUT (ch);
+	      break;
 	    }
 	  else
 	    {
@@ -618,8 +619,11 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	  ch = GET ();
 	  state = 9;
 	  if (ch == '\'')
-	    /* Change to avoid warning about unclosed string.  */
-	    PUT ('`');
+	    {
+	      /* Change to avoid warning about unclosed string.  */
+	      PUT ('`');
+	      ch = GET ();
+	    }
 	  else if (ch != EOF)
 	    UNGET (ch);
 	  break;
@@ -1511,7 +1515,7 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	      break;
 	    }
 
-#ifdef TC_Z80
+#if defined TC_Z80 || defined TC_EZ80
 	  /* "af'" is a symbol containing '\''.  */
 	  if (state == 3 && (ch == 'a' || ch == 'A'))
 	    {
