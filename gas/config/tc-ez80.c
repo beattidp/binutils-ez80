@@ -4042,6 +4042,7 @@ static table_t instab[] =
   { "and.s",  0xA0, 0x00, emit_logic },			//sves added
   { "bit",  0xCB, 0x40, emit_bit },
   { "bit.l",  0xCB, 0x40, emit_bit },			//sves added
+  { "bit.lil", 0xCB, 0x40, emit_bit },
   { "bit.s",  0xCB, 0x40, emit_bit },			//sves added
   { "call", 0xCD, 0xC4, emit_jpcc },
   { "call.il", 0xCD, 0xC4, emit_jpcc },			//sves added
@@ -4226,6 +4227,7 @@ static table_t instab[] =
   { "push.s", 0x00, 0xC5, emit_pop },			//sves added
   { "res",  0xCB, 0x80, emit_bit },
   { "res.l",  0xCB, 0x80, emit_bit },			//sves added
+  { "res.lil", 0xCB, 0x80, emit_bit },
   { "res.s",  0xCB, 0x80, emit_bit },			//sves added
   { "ret",  0xC9, 0xC0, emit_retcc },
   { "ret.l",  0xC9, 0xC0, emit_retcc },			//sves added
@@ -4254,6 +4256,7 @@ static table_t instab[] =
   { "rsmix",  0xED, 0x7E, emit_insn },
   { "rst",  0x00, 0xC7, emit_rst},
   { "rst.l",  0x00, 0xC7, emit_rst},			//sves added
+  { "rst.lil", 0x00, 0xC7, emit_rst },
   { "rst.s",  0x00, 0xC7, emit_rst},			//sves added
   { "sbc",  0x98, 0x42, emit_adc },
   { "sbc.l",  0x98, 0x42, emit_adc },			//sves added
@@ -4261,6 +4264,7 @@ static table_t instab[] =
   { "scf",  0x00, 0x37, emit_insn },
   { "set",  0xCB, 0xC0, emit_bit },
   { "set.l",  0xCB, 0xC0, emit_bit },			//sves added
+  { "set.lil", 0xCB, 0xC0, emit_bit },
   { "set.s",  0xCB, 0xC0, emit_bit },			//sves added
   { "sla",  0xCB, 0x20, emit_mr },
   { "sla.l",  0xCB, 0x20, emit_mr },			//sves added
