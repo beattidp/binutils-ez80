@@ -902,7 +902,23 @@ ez80_start_line_hook (void)
       else if (strncasecmp (rest, "DEFL", 4) == 0)
 	{ len = 4; reassign = 1; }
       else if (zmasm_syntax && strncasecmp (rest, "SET", 3) == 0)
-	{ len = 3; reassign = 1; }
+	{
+	  char *p = rest + 3;
+	  int is_inst = 0;
+	  while (*p && *p != '\n' && *p != ';')
+	    {
+	      if (*p == ',')
+		{
+		  is_inst = 1;
+		  break;
+		}
+	      p++;
+	    }
+	  if (is_inst)
+	    len = 0;
+	  else
+	    { len = 3; reassign = 1; }
+	}
 
       else
 	len = 0;
@@ -3923,7 +3939,13 @@ zmasm_set (int ignore)
       return;
     }
     
-  if (!is_name_beginner (*p))
+  p = skip_space (p);
+  int is_inst = 0;
+  
+  if (ISDIGIT (*p))
+    is_inst = 1;
+    
+  if (is_inst)
     {
       char *line = xmalloc (strlen (input_line_pointer) + 6);
       strcpy (line, "set ");
@@ -3940,6 +3962,27 @@ zmasm_set (int ignore)
 }
 
 /* Port specific pseudo ops.  */
+static void
+zmasm_section (int ignore)
+{
+  obj_elf_section (ignore);
+
+  if (zmasm_syntax && now_seg != NULL)
+    {
+      const char *name = bfd_section_name (now_seg);
+      flagword flags = bfd_section_flags (now_seg);
+
+      if (strcasecmp (name, "CODE") == 0 || strcasecmp (name, ".text") == 0 || strcasecmp (name, "TEXT") == 0)
+        flags |= SEC_ALLOC | SEC_LOAD | SEC_CODE | SEC_READONLY;
+      else if (strcasecmp (name, "DATA") == 0 || strcasecmp (name, ".data") == 0)
+        flags |= SEC_ALLOC | SEC_LOAD | SEC_DATA;
+      else if (strcasecmp (name, "BSS") == 0 || strcasecmp (name, ".bss") == 0)
+        flags |= SEC_ALLOC;
+
+      bfd_set_section_flags (now_seg, flags);
+    }
+}
+
 const pseudo_typeS md_pseudo_table[] =
 {
   { "assume", assume, 0},				//SVES ADDED ,support pseudo instructions .ASSUME
@@ -3970,8 +4013,8 @@ const pseudo_typeS md_pseudo_table[] =
   { "dw", cons, 2},
   { "dl", cons, 4},
   { "equ", s_set, 0},
-  { "section", obj_elf_section, 0},
-  { "segment", obj_elf_section, 0},
+  { "section", zmasm_section, 0},
+  { "segment", zmasm_section, 0},
 #if 0
   { "psect", obj_coff_section, 0}, /* TODO: Translate attributes.  */
 #endif
