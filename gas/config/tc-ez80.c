@@ -4010,6 +4010,7 @@ const pseudo_typeS md_pseudo_table[] =
   { "defs", s_space, 1}, /* Synonym for ds on some assemblers.  */
   { "defw", cons, 2},
   { "ds",   s_space, 1}, /* Fill with bytes rather than words.  */
+  { "blkp", s_space, 1}, /* Fill block with value (ZMASM). */
   { "dw", cons, 2},
   { "dl", cons, 4},
   { "equ", s_set, 0},
