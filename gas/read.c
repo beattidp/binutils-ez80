@@ -1079,6 +1079,28 @@ read_a_source_file (const char *name)
 				  || is_end_of_stmt (rest[5])))
 			    mri_line_macro = 1;
 			}
+			
+		      if (NO_PSEUDO_DOT)
+			{
+			  /* ZMASM allows pseudo-ops without dots at the start of a line. */
+			  char original_case[64];
+			  char *s2 = line_start;
+			  int i = 0;
+			  while (s2 < input_line_pointer && i < 63)
+			    {
+			      original_case[i] = TOLOWER (*s2);
+			      s2++;
+			      i++;
+			    }
+			  original_case[i] = 0;
+			  if (str_hash_find (po_hash, original_case))
+			    {
+			      /* It is a pseudo-op! Restore the delimiter and break out! */
+			      restore_line_pointer (nul_char);
+			      input_line_pointer = line_start;
+			      goto skip_label_without_colon;
+			    }
+			}
 
 		      /* In MRI mode, we need to handle the MACRO
 			 pseudo-op specially: we don't want to put the
@@ -1098,6 +1120,8 @@ read_a_source_file (const char *name)
 		      if (next_char == ':')
 			input_line_pointer++;
 		    }
+		    
+		skip_label_without_colon:;
 		}
 	    }
 

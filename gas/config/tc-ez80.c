@@ -655,10 +655,19 @@ ez80_tc_string_escapes (void)
 int
 ez80_tc_start_label_without_colon (char *name, char nul_char, char next_char ATTRIBUTE_UNUSED)
 {
+  int i;
   if (!zmasm_syntax)
     return 1;
     
-  if (strcasecmp (name, "macro") == 0 || strcasecmp (name, "endmacro") == 0)
+  for (i = 0; md_pseudo_table[i].poc_name != NULL; i++)
+    {
+      if (strcasecmp (name, md_pseudo_table[i].poc_name) == 0)
+        return 0;
+    }
+    
+  if (strcasecmp (name, "end") == 0 || strcasecmp (name, "org") == 0
+      || strcasecmp (name, "if") == 0 || strcasecmp (name, "else") == 0
+      || strcasecmp (name, "endif") == 0 || strcasecmp (name, "include") == 0)
     return 0;
     
   if (nul_char == ' ' || nul_char == '\t')
@@ -3878,6 +3887,14 @@ const pseudo_typeS md_pseudo_table[] =
   { "cpu", cpu, 0},						//SVES ADDED ,support pseudo instructions .CPU
   { "macro", s_macro, 0},
   { "endmacro", s_endm, 0},
+  { "endmac", s_endm, 0},
+  { "macend", s_endm, 0},
+  { "xdef", s_globl, 0},
+  { "public", s_globl, 0},
+  { "xref", s_ignore, 0},
+  { "extern", s_ignore, 0},
+  { "align", s_align_bytes, 0},
+  { "title", listing_title, 0},
   { "ifsame", s_ifc, 0},
   { "comment", s_zmasm_comment, 0},
   { "define", s_zmasm_define, 0},
@@ -3900,6 +3917,7 @@ const pseudo_typeS md_pseudo_table[] =
   { "psect", obj_coff_section, 0}, /* TODO: Translate attributes.  */
 #endif
   { "set", zmasm_set, 0},
+  { "var", zmasm_set, 0},
   { NULL, 0, 0 }
 } ;
 
