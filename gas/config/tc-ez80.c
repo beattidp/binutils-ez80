@@ -67,8 +67,27 @@ const char * const ez80_variant_names[] = {
 int cpu_eZ80 = 1 ;		/* selects cpu type */
 int adl_mode;			/* selects adl mode 0 or 1 */
 int zmasm_syntax = 0;
+static char original_qm_type = 0;
+static int original_qm_saved = 0;
 
-/*SVES END*/
+void
+update_qm_lex_type (void)
+{
+  if (zmasm_syntax)
+    {
+      if (!original_qm_saved)
+        {
+          original_qm_type = lex_type['?'];
+          original_qm_saved = 1;
+        }
+      lex_type['?'] = LEX_BEGIN_NAME | LEX_NAME;
+    }
+  else
+    {
+      if (original_qm_saved)
+        lex_type['?'] = original_qm_type;
+    }
+}
 
 /* Exported constants.  */
 const char comment_chars[] = ";\0";
@@ -759,6 +778,7 @@ md_begin (void)
           S_SET_VALUE (sym, 0);
         }
     }
+  update_qm_lex_type ();
 }
 
 void
@@ -960,7 +980,8 @@ ez80_start_line_hook (void)
 	{ len = 3; reassign = 0; }
       else if (strncasecmp (rest, "DEFL", 4) == 0)
 	{ len = 4; reassign = 1; }
-      else if (zmasm_syntax && strncasecmp (rest, "SET", 3) == 0)
+      else if (zmasm_syntax && strncasecmp (rest, "SET", 3) == 0 &&
+	       (rest[3] == ' ' || rest[3] == '\t'))
 	{
 	  char *p = rest + 3;
 	  int is_inst = 0;
@@ -974,7 +995,17 @@ ez80_start_line_hook (void)
 	      p++;
 	    }
 	  if (is_inst)
-	    len = 0;
+	    {
+	      char *end = rest;
+	      while (*end && *end != '\n') end++;
+	      char old_c = *end;
+	      *end = '\0';
+	      colon (line_start);
+	      md_assemble (rest);
+	      *end = old_c;
+	      input_line_pointer = end;
+	      return 1;
+	    }
 	  else
 	    { len = 3; reassign = 1; }
 	}
@@ -3919,6 +3950,7 @@ static void s_zmasm (int ignore ATTRIBUTE_UNUSED)
       as_warn (_("invalid argument to .zmasm, expecting ON or OFF"));
     }
   input_line_pointer = p;
+  update_qm_lex_type ();
   demand_empty_rest_of_line ();
 }
 
@@ -3926,6 +3958,7 @@ static void s_gas (int ignore ATTRIBUTE_UNUSED)
 {
   zmasm_syntax = 0;
   flag_macro_alternate = 0;
+  update_qm_lex_type ();
   demand_empty_rest_of_line ();
 }
 

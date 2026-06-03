@@ -622,7 +622,6 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	    {
 	      /* Change to avoid warning about unclosed string.  */
 	      PUT ('`');
-	      ch = GET ();
 	    }
 	  else if (ch != EOF)
 	    UNGET (ch);
@@ -709,18 +708,7 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	      state = 6;
 	      PUT (ch);
 	    }
-	  else if (ch == '\\' && quotechar != '}')
-	    {
-	      /* ZMASM doesn't use TC_STRING_ESCAPES, but it does escape quotes.  */
-	      PUT (ch);
-	      ch = GET ();
-	      if (ch == EOF)
-		{
-		  as_warn (_("end of file in escape character"));
-		  ch = '\\';
-		}
-	      PUT (ch);
-	    }
+
 	  else if (scrub_m68k_mri && ch == '\n')
 	    {
 	      /* Just quietly terminate the string.  This permits lines like
@@ -1206,6 +1194,24 @@ do_scrub_chars (size_t (*get) (char *, size_t), char *tostart, size_t tolen,
 	  break;
 
 	case LEX_IS_STRINGQUOTE:
+#if defined TC_EZ80
+	  if (ch == '\'')
+	    {
+	      char c1 = (to - tostart >= 1) ? to[-1] : last_char;
+	      char c2 = (to - tostart >= 2) ? to[-2] : '\0';
+	      if (((c1 == 'f' || c1 == 'F') && (c2 == 'a' || c2 == 'A')) ||
+		  ((c1 == 'c' || c1 == 'C') && (c2 == 'b' || c2 == 'B')) ||
+		  ((c1 == 'e' || c1 == 'E') && (c2 == 'd' || c2 == 'D')) ||
+		  ((c1 == 'l' || c1 == 'L') && (c2 == 'h' || c2 == 'H')) ||
+		  ((c1 == 'x' || c1 == 'X') && (c2 == 'i' || c2 == 'I')) ||
+		  ((c1 == 'y' || c1 == 'Y') && (c2 == 'i' || c2 == 'I')) ||
+		  ((c1 == 'p' || c1 == 'P') && (c2 == 's' || c2 == 'S')))
+		{
+		  PUT ('`');
+		  break;
+		}
+	    }
+#endif
 	  quotechar = ch;
 #ifdef TC_EZ80
 	  if (ch == '{')
