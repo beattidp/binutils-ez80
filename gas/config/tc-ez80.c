@@ -223,7 +223,7 @@ int add_suffix_call( void )
 		}		
 		else if((strncmp(".lil",suffix,4) == 0)&& adl_mode == 1)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}	
 		else if((strncmp(".sis",suffix,4) == 0)&& adl_mode == 1)
 		{
@@ -232,7 +232,7 @@ int add_suffix_call( void )
 		}
 		else if((strncmp(".sis",suffix,4) == 0)&& adl_mode == 0)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}
 		else if((strncmp(".lis",suffix,4) == 0) && adl_mode == 0)
 		{
@@ -276,13 +276,13 @@ int add_suffix_call( void )
 		}
 		else if((strncmp(".",suffix,1) == 0))
 		{
-			error_value = 1 ;
+			if (!zmasm_syntax) error_value = 1 ;
 		}
 	}
 	else if (cpu_eZ80 == 0)
 	{
 		if (suffix[0] =='.' )
-			error_value = 1 ;
+			if (!zmasm_syntax) error_value = 1 ;
 	}		
 	return error_value;
 }
@@ -313,17 +313,17 @@ int add_suffix( void )
 		}	
 		else if((strncmp(".s",suffix,2) == 0)&& adl_mode == 0)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}
 		else if((strncmp(".l",suffix,2) == 0)&& adl_mode == 1)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}
 	}		
 	else if (cpu_eZ80 == 0)
 	{
 		if (suffix[0] =='.' )
-			error_value = 1 ;
+			if (!zmasm_syntax) error_value = 1 ;
 	}		
 return error_value;
 }
@@ -352,17 +352,17 @@ int add_suffix_ret( void )
 		}
 		else if((strncmp(".s",suffix,2) == 0)&& adl_mode == 1)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}
 		else if((strncmp(".s",suffix,2) == 0)&& adl_mode == 0)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}	
 	}		
 	else if (cpu_eZ80 == 0)
 	{
 		if (suffix[0] =='.' )
-			error_value = 1 ;
+			if (!zmasm_syntax) error_value = 1 ;
 	}		
 	return error_value;
 }
@@ -385,7 +385,7 @@ int add_suffix_ld( void )
 		}		
 		else if((strncmp(".lil",suffix,4) == 0)&& adl_mode == 1)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}	
 		else if((strncmp(".sis",suffix,4) == 0)&& adl_mode == 1)
 		{
@@ -394,7 +394,7 @@ int add_suffix_ld( void )
 		}
 		else if((strncmp(".sis",suffix,4) == 0)&& adl_mode == 0)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}
 		else if((strncmp(".lis",suffix,4) == 0) && adl_mode == 0)
 		{
@@ -418,7 +418,7 @@ int add_suffix_ld( void )
 		}
 		else if((strncmp(".is",suffix,3) == 0) && adl_mode == 0)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}
 		else if((strncmp(".is",suffix,3) == 0) && adl_mode == 1)
 		{
@@ -432,7 +432,7 @@ int add_suffix_ld( void )
 		}			
 		else if((strncmp(".il",suffix,3) == 0) && adl_mode == 1)
 		{
-			error_value = 1;
+			if (!zmasm_syntax) error_value = 1;
 		}
 		else if((strncmp(".s",suffix,2) == 0) && adl_mode == 1)
 		{
@@ -451,13 +451,13 @@ int add_suffix_ld( void )
 		}	
 		else if((strncmp(".s",suffix,2) == 0) && adl_mode == 0 )
 		{
-			error_value = 1 ;
+			if (!zmasm_syntax) error_value = 1 ;
 		}			
 	}
 	else if (cpu_eZ80 == 0)
 	{
 		if (suffix[0] =='.' )
-			error_value = 1 ;
+			if (!zmasm_syntax) error_value = 1 ;
 	}		
 	return error_value;
 }
@@ -806,6 +806,36 @@ ez80_start_line_hook (void)
   char *p, quote;
   char buf[4];
 
+  char *p_set = input_line_pointer;
+  while (*p_set == ' ' || *p_set == '\t') p_set++;
+
+  if (zmasm_syntax && strncasecmp (p_set, "SET", 3) == 0 &&
+      (p_set[3] == ' ' || p_set[3] == '\t'))
+    {
+      char *p2 = skip_space (p_set + 3);
+      int is_inst = 0;
+      while (*p2 && *p2 != '\n' && *p2 != ';')
+        {
+          if (*p2 == ',')
+            {
+              is_inst = 1;
+              break;
+            }
+          p2++;
+        }
+      if (is_inst)
+        {
+          char *end = p2;
+          while (*end && *end != '\n') end++;
+          char c = *end;
+          *end = '\0';
+          md_assemble (input_line_pointer);
+          *end = c;
+          input_line_pointer = end;
+          return 1;
+        }
+    }
+
   /* Convert one character constants.  */
   for (p = input_line_pointer; *p && *p != '\n'; ++p)
     {
@@ -818,6 +848,20 @@ ez80_start_line_hook (void)
 	      *p++ = buf[0];
 	      *p++ = buf[1];
 	      *p = buf[2];
+	    }
+	  else
+	    {
+	      for (quote = *p++; quote != *p && '\n' != *p && '\0' != *p; ++p)
+	        {
+	          if (*p == '\\' && p[1] != '\0' && p[1] != '\n')
+	            ++p; /* Skip escaped character. */
+	        }
+	      if (quote != *p && !zmasm_syntax)
+	        {
+	          as_bad (_("-- unterminated string"));
+	          ignore_rest_of_line ();
+	          return 1;
+	        }
 	    }
 	  break;
 	case '{':
@@ -868,12 +912,27 @@ ez80_start_line_hook (void)
 	        {
 	          p[0] = '1';
 	          p[1] = 'b';
+	          p++;
 	        }
 	      else if ((p[1] == 'F' || p[1] == 'f') && !is_part_of_name(p[2]))
 	        {
 	          p[0] = '1';
 	          p[1] = 'f';
+	          p++;
 	        }
+	    }
+	  break;
+	case 'b':
+	  if (zmasm_syntax && p > input_line_pointer && (p[-1] == '0' || p[-1] == '1'))
+	    {
+	      char *q = p - 1;
+	      int length = 0;
+	      while (q >= input_line_pointer && (*q == '0' || *q == '1')) {
+	        q--;
+	        length++;
+	      }
+	      if ((q < input_line_pointer || !is_part_of_name (*q)) && length > 1)
+	        *p = 'B';
 	    }
 	  break;
 	}
@@ -3836,8 +3895,38 @@ ez80_operator (char *name, int args, char *next_p ATTRIBUTE_UNUSED)
 
 static void s_zmasm (int ignore ATTRIBUTE_UNUSED)
 {
-  zmasm_syntax = 1;
-  flag_macro_alternate = 1;
+  char *p = input_line_pointer;
+  p = skip_space (p);
+  if (*p == '\n' || *p == ';' || *p == '\0')
+    {
+      zmasm_syntax = 1;
+      flag_macro_alternate = 1;
+    }
+  else if (strncasecmp (p, "ON", 2) == 0)
+    {
+      zmasm_syntax = 1;
+      flag_macro_alternate = 1;
+      p += 2;
+    }
+  else if (strncasecmp (p, "OFF", 3) == 0)
+    {
+      zmasm_syntax = 0;
+      flag_macro_alternate = 0;
+      p += 3;
+    }
+  else
+    {
+      as_warn (_("invalid argument to .zmasm, expecting ON or OFF"));
+    }
+  input_line_pointer = p;
+  demand_empty_rest_of_line ();
+}
+
+static void s_gas (int ignore ATTRIBUTE_UNUSED)
+{
+  zmasm_syntax = 0;
+  flag_macro_alternate = 0;
+  demand_empty_rest_of_line ();
 }
 
 static void s_zmasm_comment (int ignore ATTRIBUTE_UNUSED)
@@ -3961,6 +4050,35 @@ zmasm_set (int ignore)
   s_set (ignore);
 }
 
+/* Parse names that are actually hex numbers (e.g. D4h) in ZMASM mode.  */
+int
+ez80_parse_name (const char *name, expressionS *exprP, enum expr_mode mode ATTRIBUTE_UNUSED, char *nextchar ATTRIBUTE_UNUSED)
+{
+  if (!zmasm_syntax)
+    return 0;
+
+  const char *p = name;
+  if ((*p >= 'a' && *p <= 'f') || (*p >= 'A' && *p <= 'F'))
+    {
+      while ((*p >= '0' && *p <= '9') ||
+             (*p >= 'a' && *p <= 'f') ||
+             (*p >= 'A' && *p <= 'F'))
+        p++;
+        
+      if ((*p == 'h' || *p == 'H') && p[1] == '\0')
+        {
+          char *end;
+          unsigned long val = strtoul(name, &end, 16);
+          exprP->X_op = O_constant;
+          exprP->X_add_number = val;
+          exprP->X_add_symbol = NULL;
+          exprP->X_op_symbol = NULL;
+          return 1;
+        }
+    }
+  return 0;
+}
+
 /* Port specific pseudo ops.  */
 static void
 zmasm_section (int ignore)
@@ -4001,6 +4119,7 @@ const pseudo_typeS md_pseudo_table[] =
   { "comment", s_zmasm_comment, 0},
   { "define", s_zmasm_define, 0},
   { "zmasm", s_zmasm, 0},
+  { "gas", s_gas, 0},
   { "db" , emit_data, 1},
   { "d24", cons, 3},
   { "d32", cons, 4},
@@ -4012,6 +4131,7 @@ const pseudo_typeS md_pseudo_table[] =
   { "ds",   s_space, 1}, /* Fill with bytes rather than words.  */
   { "blkp", s_space, 1}, /* Fill block with value (ZMASM). */
   { "dw", cons, 2},
+  { "dw24", cons, 3},
   { "dl", cons, 4},
   { "equ", s_set, 0},
   { "section", zmasm_section, 0},
@@ -4019,7 +4139,6 @@ const pseudo_typeS md_pseudo_table[] =
 #if 0
   { "psect", obj_coff_section, 0}, /* TODO: Translate attributes.  */
 #endif
-  { "set", zmasm_set, 0},
   { "var", zmasm_set, 0},
   { NULL, 0, 0 }
 } ;

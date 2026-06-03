@@ -61,6 +61,9 @@
 extern void ez80_md_end (void);
 extern int ez80_start_line_hook (void);
 extern void ez80_cons_fix_new (fragS *, int, int, expressionS *);
+extern int ez80_parse_name (const char *, expressionS *, enum expr_mode, char *);
+
+#define md_parse_name(name, expr, mode, nextchar) ez80_parse_name (name, expr, mode, nextchar)
 
 #define WORKING_DOT_WORD
 
@@ -85,6 +88,7 @@ extern void ez80_cons_fix_new (fragS *, int, int, expressionS *);
 /* A '$' is used to refer to the current location or as a hex. prefix.  */
 #define DOLLAR_DOT
 #define DOLLAR_AMBIGU                1
+extern int zmasm_syntax;
 #define LOCAL_LABELS_FB              1
 #define LITERAL_PREFIXPERCENT_BIN
 #define NUMBERS_WITH_SUFFIX          1

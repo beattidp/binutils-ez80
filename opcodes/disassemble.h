@@ -96,6 +96,7 @@ extern int print_insn_xgate             (bfd_vma, disassemble_info *);
 extern int print_insn_xstormy16		(bfd_vma, disassemble_info *);
 extern int print_insn_xtensa		(bfd_vma, disassemble_info *);
 extern int print_insn_z80		(bfd_vma, disassemble_info *);
+extern int print_insn_ez80		(bfd_vma, disassemble_info *);
 extern int print_insn_z8001		(bfd_vma, disassemble_info *);
 extern int print_insn_z8002		(bfd_vma, disassemble_info *);
 extern int print_insn_loongarch		(bfd_vma, disassemble_info *);

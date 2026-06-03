@@ -101,6 +101,7 @@
 #define ARCH_xgate
 #define ARCH_xtensa
 #define ARCH_z80
+#define ARCH_ez80
 #define ARCH_z8k
 #endif
 
@@ -479,10 +480,12 @@ disassembler (enum bfd_architecture a,
       disassemble = print_insn_z80;
       break;
 #endif
-#ifdef ARCH_z8k
+#ifdef ARCH_ez80
     case bfd_arch_ez80:
       disassemble = print_insn_ez80;
       break;
+#endif
+#ifdef ARCH_z8k
     case bfd_arch_z8k:
       if (mach == bfd_mach_z8001)
 	disassemble = print_insn_z8001;

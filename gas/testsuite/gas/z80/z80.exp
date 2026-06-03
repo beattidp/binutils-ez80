@@ -16,7 +16,7 @@
 
 # run tests for target Z80.
 
-if [istarget z80-*-*] then {
+if {[istarget z80-*-*] || [istarget ez80-*-*]} then {
     run_dump_tests [lsort [glob -nocomplain $srcdir/$subdir/*.d]]
 
     gas_test_error "jr-forwf.s" "" "relative jump out of range (jr)"
