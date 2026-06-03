@@ -80,7 +80,9 @@ extern int ez80_parse_name (const char *, expressionS *, enum expr_mode, char *)
 /* Values passed to md_apply_fix3 don't include the symbol value.  */
 #define MD_APPLY_SYM_VALUE(FIX) 0
 
-#define LISTING_WORD_SIZE 2
+#define LISTING_WORD_SIZE 1
+#define LISTING_ERROR_FORMAT "% 4d ?????? "
+#define LISTING_ADDRESS_FORMAT "% 4d %06x "
 
 /* A single '=' is accepted as a comparison operator.  */
 #define O_SINGLE_EQ O_eq

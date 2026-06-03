@@ -885,10 +885,17 @@ print_lines (list_info_type *list, unsigned int lineno,
       return;
     }
 
+#ifndef LISTING_ERROR_FORMAT
+#define LISTING_ERROR_FORMAT "% 4d ???? "
+#endif
+#ifndef LISTING_ADDRESS_FORMAT
+#define LISTING_ADDRESS_FORMAT "% 4d %04x "
+#endif
+
   if (had_errors ())
-    fprintf (list_file, "% 4d ???? ", lineno);
+    fprintf (list_file, LISTING_ERROR_FORMAT, lineno);
   else
-    fprintf (list_file, "% 4d %04x ", lineno, address);
+    fprintf (list_file, LISTING_ADDRESS_FORMAT, lineno, address);
 
   /* And the data to go along with it.  */
   idx = 0;
