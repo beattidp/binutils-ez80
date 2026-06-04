@@ -40,3 +40,7 @@ The core GNU assembler parsing routines (`read.c`, `app.c`, `macro.c`, `listing.
   * **24-bit Output Formatting**: By default, `gas` hardcoded its listing address output format to `%04x` (16-bit). Modified `print_lines` to use a `LISTING_ADDRESS_FORMAT` and `LISTING_ERROR_FORMAT` macro, which is supplied by `tc-ez80.h` as `%06x`, enabling clean 24-bit address output generation in the `.lst` files.
 * **`gas/configure.tgt`**: Mapped `ez80-*-*` to the `ez80` target format profile.
 * **`gas/Makefile.am`**: Appended `tc-ez80.c` to the target format build sources.
+
+### Credit where Credit is Due:
+Although this port was started in 2014 by me initially paying an offshore development firm, I brought it to fruition in 2026 with the assistance of [Google Antigravity](http://antigravity.google/).  _Thank you!_
+
